@@ -197,6 +197,7 @@ public class Controller implements EngineCallBack, LinkerCallBack {
      * 变招列表
      */
     private List<String> tacticList;
+    private volatile boolean manualRefreshingFirstStep;
     private final EventHandler<KeyEvent> keyboardEventHandler = this::onGlobalKeyPressed;
 
     private static class FirstStepData {
@@ -350,6 +351,7 @@ public class Controller implements EngineCallBack, LinkerCallBack {
     }
 
     private void engineStop() {
+        manualRefreshingFirstStep = false;
         if (engine != null) {
             engine.stop();
         }
@@ -449,6 +451,7 @@ public class Controller implements EngineCallBack, LinkerCallBack {
     }
 
     private void engineGo() {
+        manualRefreshingFirstStep = false;
         if (engine == null) {
             DialogUtils.showWarningDialog("提示", "引擎未加载");
             return;
@@ -1168,6 +1171,12 @@ public class Controller implements EngineCallBack, LinkerCallBack {
     }
 
     private void refreshFirstStepList() {
+        refreshFirstStepList(false);
+    }
+
+    private void refreshFirstStepList(boolean manualTrigger) {
+        int thinkCount = listView.getItems().size();
+        int beforeCount = firstStepListView.getItems().size();
         Map<String, FirstStepData> firstStepDeduplicate = new HashMap<>();
         Map<String, Integer> secondStepDeduplicate = new HashMap<>();
         for (ThinkData td : listView.getItems()) {
@@ -1215,7 +1224,9 @@ public class Controller implements EngineCallBack, LinkerCallBack {
             }
             return a.getWord().compareTo(b.getWord());
         });
+        firstStepListView.getItems().clear();
         firstStepListView.getItems().setAll(firstList);
+        firstStepListView.refresh();
 
         List<Map.Entry<String, Integer>> secondList = new ArrayList<>(secondStepDeduplicate.entrySet());
         secondList.sort((a, b) -> {
@@ -1235,6 +1246,20 @@ public class Controller implements EngineCallBack, LinkerCallBack {
             secondMoves.add(item.getKey());
         }
         board.setTips(firstMoves, secondMoves);
+
+        if (manualTrigger) {
+            if (!firstList.isEmpty()) {
+                firstStepListView.getSelectionModel().select(0);
+                firstStepListView.scrollTo(0);
+            }
+            String message = String.format("首步去重刷新完成：原始%d条，刷新前%d条，刷新后%d条，次步%d条",
+                    thinkCount, beforeCount, firstList.size(), secondMoves.size());
+            System.out.println("[FirstStepDeduplicate] " + message);
+            if (this.infoShowLabel != null) {
+                this.infoShowLabel.setText(message);
+                this.infoShowLabel.setTextFill(Color.web("#1f6feb"));
+            }
+        }
     }
 
     private void initEngineView() {
@@ -1427,6 +1452,17 @@ public class Controller implements EngineCallBack, LinkerCallBack {
 
     @Override
     public void bestMove(String first, String second) {
+        if (manualRefreshingFirstStep) {
+            manualRefreshingFirstStep = false;
+            Platform.runLater(() -> {
+                String msg = String.format("引擎重新计算完成：首步去重%d条", firstStepListView.getItems().size());
+                System.out.println("[FirstStepDeduplicate] " + msg);
+                infoShowLabel.setText(msg);
+                infoShowLabel.setTextFill(Color.web("#1f6feb"));
+            });
+            return;
+        }
+
         if (redGo && robotRed.getValue() || !redGo && robotBlack.getValue()) {
             ChessBoard.Step s = board.stepForBoard(first);
 
@@ -1445,7 +1481,7 @@ public class Controller implements EngineCallBack, LinkerCallBack {
 
     @Override
     public void thinkDetail(ThinkData td) {
-        if (redGo && robotRed.getValue() || !redGo && robotBlack.getValue() || robotAnalysis.getValue()) {
+        if (redGo && robotRed.getValue() || !redGo && robotBlack.getValue() || robotAnalysis.getValue() || manualRefreshingFirstStep) {
             td.generate(redGo, isReverse.getValue(), board);
             if (td.getValid()) {
                 Platform.runLater(() -> {
@@ -1484,6 +1520,33 @@ public class Controller implements EngineCallBack, LinkerCallBack {
 
         FirstStepData data = firstStepListView.getSelectionModel().getSelectedItem();
         playFirstStep(data);
+    }
+
+    @FXML
+    public void refreshFirstStepListClick(ActionEvent event) {
+        if (engine == null) {
+            refreshFirstStepList(true);
+            String msg = "首步去重已刷新，但未加载引擎，无法重新计算";
+            System.out.println("[FirstStepDeduplicate] " + msg);
+            infoShowLabel.setText(msg);
+            infoShowLabel.setTextFill(Color.web("#b26a00"));
+            return;
+        }
+
+        engineStop();
+        clearThinkOutput();
+        manualRefreshingFirstStep = true;
+        tacticList = null;
+
+        engine.setThreadNum(prop.getThreadNum());
+        engine.setHashSize(prop.getHashSize());
+        engine.setAnalysisModel(prop.getAnalysisModel(), prop.getAnalysisValue());
+        engine.analysis(fenCode, moveList.subList(0, p), this.board.getBoard(), redGo, false);
+
+        String msg = String.format("已触发引擎重新计算：局面%s，历史步数%d", fenCode, p);
+        System.out.println("[FirstStepDeduplicate] " + msg);
+        infoShowLabel.setText(msg);
+        infoShowLabel.setTextFill(Color.web("#1f6feb"));
     }
 
     private boolean playFirstDeduplicateStep() {

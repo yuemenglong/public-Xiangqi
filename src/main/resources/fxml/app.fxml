@@ -227,6 +227,7 @@
                                           <ToolBar minHeight="-Infinity" minWidth="-Infinity" prefHeight="30.0" BorderPane.alignment="CENTER">
                                              <items>
                                                 <Label text="&#39318;&#27493;&#21435;&#37325;" />
+                                                <Button mnemonicParsing="false" onAction="#refreshFirstStepListClick" text="&#21047;&#26032;" />
                                              </items>
                                           </ToolBar>
                                        </top>
