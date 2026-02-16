@@ -3,9 +3,11 @@ package com.sojourners.chess.util;
 public class MathUtils {
 
     public static double calculateDistance(int x1, int y1, int x2, int y2) {
+        return calculateDistance((double) x1, (double) y1, (double) x2, (double) y2);
+    }
 
+    public static double calculateDistance(double x1, double y1, double x2, double y2) {
         return Math.sqrt(Math.pow(x1 - x2, 2) + Math.pow(y1 - y2, 2));
-
     }
 
     public static double calculateAngle(int x1, int y1, int x2, int y2) {
