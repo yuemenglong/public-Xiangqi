@@ -921,7 +921,18 @@ public class Controller implements EngineCallBack, LinkerCallBack {
     }
 
     private void onGlobalKeyPressed(KeyEvent event) {
-        if (event == null || event.isAltDown() || event.isControlDown() || event.isMetaDown()) {
+        if (event == null || event.isAltDown() || event.isMetaDown()) {
+            return;
+        }
+
+        // Keep Ctrl+V text paste behavior in input controls.
+        if (event.isControlDown()) {
+            if (event.getCode() == KeyCode.V && !(event.getTarget() instanceof TextInputControl)) {
+                if (pasteImageFromClipboard()) {
+                    analysisButtonClick(null);
+                }
+                event.consume();
+            }
             return;
         }
 
