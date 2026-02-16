@@ -910,6 +910,9 @@ public class Controller implements EngineCallBack, LinkerCallBack {
             if (playFirstDeduplicateStep()) {
                 event.consume();
             }
+        } else if (keyCode == KeyCode.F2) {
+            pasteImageMenuClick(null);
+            event.consume();
         }
     }
 
