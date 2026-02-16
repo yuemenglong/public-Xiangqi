@@ -55,10 +55,6 @@ public abstract class BaseBoardRender implements BoardRender {
         }
         // 绘制棋子
         drawPieces(pos, piece, board, isReverse, boardSize);
-        if (prevStep != null) {
-            drawPrevStepArrow(pos, piece, prevStep.getStart().x, prevStep.getStart().y,
-                    prevStep.getEnd().x, prevStep.getEnd().y, isReverse, Color.web("#E6E6E6"));
-        }
         // 绘制棋步提示
         if (stepTip && moveTips != null) {
             boolean showTipOrder = showMultiPV || !moveTips.isEmpty();
@@ -197,54 +193,6 @@ public abstract class BaseBoardRender implements BoardRender {
      */
     private double getStepRectWitdh(ChessBoard.BoardSize style) {
         return getPieceSize(style) / 25d;
-    }
-
-    private void drawPrevStepArrow(int pos, int piece, int x1, int y1, int x2, int y2, boolean isReverse, Color color) {
-        x1 = pos + piece * getReverseX(x1, isReverse);
-        y1 = pos + piece * getReverseY(y1, isReverse);
-        x2 = pos + piece * getReverseX(x2, isReverse);
-        y2 = pos + piece * getReverseY(y2, isReverse);
-
-        double dx = x2 - x1;
-        double dy = y2 - y1;
-        double len = Math.sqrt(dx * dx + dy * dy);
-        if (len < 1e-6) {
-            return;
-        }
-
-        double ux = dx / len;
-        double uy = dy / len;
-        double startOffset = piece * 0.30;
-        double endOffset = piece * 0.34;
-        double sx = x1 + ux * startOffset;
-        double sy = y1 + uy * startOffset;
-        double ex = x2 - ux * endOffset;
-        double ey = y2 - uy * endOffset;
-        double bodyLen = MathUtils.calculateDistance(sx, sy, ex, ey);
-        if (bodyLen < piece * 0.15) {
-            return;
-        }
-
-        double headLen = Math.min(piece / 3.5, bodyLen * 0.8);
-        double headWidth = piece / 3.8;
-        double px = -uy;
-        double py = ux;
-
-        double bx = ex - ux * headLen;
-        double by = ey - uy * headLen;
-        double lx = bx + px * headWidth / 2.0;
-        double ly = by + py * headWidth / 2.0;
-        double rx = bx - px * headWidth / 2.0;
-        double ry = by - py * headWidth / 2.0;
-
-        gc.save();
-        gc.setGlobalAlpha(0.62);
-        gc.setStroke(color);
-        gc.setFill(color);
-        gc.setLineWidth(piece / 12.0);
-        gc.strokeLine(sx, sy, bx, by);
-        gc.fillPolygon(new double[]{ex, lx, rx}, new double[]{ey, ly, ry}, 3);
-        gc.restore();
     }
 
     @Override
