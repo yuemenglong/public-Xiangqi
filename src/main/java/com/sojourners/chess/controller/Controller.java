@@ -33,6 +33,8 @@ import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.MenuItem;
 import javafx.scene.control.*;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyEvent;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.image.WritableImage;
 import javafx.scene.input.MouseButton;
@@ -195,6 +197,7 @@ public class Controller implements EngineCallBack, LinkerCallBack {
      * 变招列表
      */
     private List<String> tacticList;
+    private final EventHandler<KeyEvent> keyboardEventHandler = this::onGlobalKeyPressed;
 
     private static class FirstStepData {
         private final String move;
@@ -836,6 +839,8 @@ public class Controller implements EngineCallBack, LinkerCallBack {
         initAutoFitBoardListener();
         // canvas drag listener
         initCanvasDragListener();
+        // keyboard shortcuts
+        initKeyboardShortcuts();
 
         useOpenBook.setValue(prop.getBookSwitch());
     }
@@ -872,6 +877,40 @@ public class Controller implements EngineCallBack, LinkerCallBack {
             event.acceptTransferModes(TransferMode.ANY);
             event.consume();
         });
+    }
+
+    private void initKeyboardShortcuts() {
+        if (borderPane.getScene() != null) {
+            borderPane.getScene().removeEventFilter(KeyEvent.KEY_PRESSED, keyboardEventHandler);
+            borderPane.getScene().addEventFilter(KeyEvent.KEY_PRESSED, keyboardEventHandler);
+        }
+        borderPane.sceneProperty().addListener((observable, oldScene, newScene) -> {
+            if (oldScene != null) {
+                oldScene.removeEventFilter(KeyEvent.KEY_PRESSED, keyboardEventHandler);
+            }
+            if (newScene != null) {
+                newScene.addEventFilter(KeyEvent.KEY_PRESSED, keyboardEventHandler);
+            }
+        });
+    }
+
+    private void onGlobalKeyPressed(KeyEvent event) {
+        if (event == null || event.isAltDown() || event.isControlDown() || event.isMetaDown()) {
+            return;
+        }
+
+        KeyCode keyCode = event.getCode();
+        if (keyCode == KeyCode.UP || keyCode == KeyCode.LEFT || keyCode == KeyCode.PAGE_UP) {
+            backButtonClick(null);
+            event.consume();
+        } else if (keyCode == KeyCode.DOWN || keyCode == KeyCode.RIGHT || keyCode == KeyCode.PAGE_DOWN) {
+            forwardButtonClick(null);
+            event.consume();
+        } else if (keyCode == KeyCode.ENTER) {
+            if (playFirstDeduplicateStep()) {
+                event.consume();
+            }
+        }
     }
 
     private void initAutoFitBoardListener() {
@@ -1403,8 +1442,20 @@ public class Controller implements EngineCallBack, LinkerCallBack {
         }
 
         FirstStepData data = firstStepListView.getSelectionModel().getSelectedItem();
+        playFirstStep(data);
+    }
+
+    private boolean playFirstDeduplicateStep() {
+        if (firstStepListView.getItems().isEmpty()) {
+            return false;
+        }
+        firstStepListView.getSelectionModel().select(0);
+        return playFirstStep(firstStepListView.getItems().get(0));
+    }
+
+    private boolean playFirstStep(FirstStepData data) {
         if (data == null) {
-            return;
+            return false;
         }
 
         if (linkMode.getValue()) {
@@ -1413,12 +1464,14 @@ public class Controller implements EngineCallBack, LinkerCallBack {
 
         ChessBoard.Step s = board.stepForBoard(data.getMove());
         if (s == null) {
-            return;
+            return false;
         }
         String move = board.move(s.getStart().getX(), s.getStart().getY(), s.getEnd().getX(), s.getEnd().getY());
         if (move != null) {
             goCallBack(move);
+            return true;
         }
+        return false;
     }
 
     @FXML
