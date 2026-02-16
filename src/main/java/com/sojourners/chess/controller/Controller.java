@@ -330,7 +330,7 @@ public class Controller implements EngineCallBack, LinkerCallBack {
             }
             engine.setThreadNum(prop.getThreadNum());
             engine.setHashSize(prop.getHashSize());
-            engine.setAnalysisModel(robotAnalysis.getValue() ? Engine.AnalysisModel.INFINITE : prop.getAnalysisModel(), prop.getAnalysisValue());
+            engine.setAnalysisModel(prop.getAnalysisModel(), prop.getAnalysisValue());
             engine.analysis(fenCode, moveList.subList(0, p), tacticList);
         }
     }
@@ -418,8 +418,8 @@ public class Controller implements EngineCallBack, LinkerCallBack {
 
         engine.setThreadNum(prop.getThreadNum());
         engine.setHashSize(prop.getHashSize());
-        engine.setAnalysisModel(robotAnalysis.getValue() ? Engine.AnalysisModel.INFINITE : prop.getAnalysisModel(), prop.getAnalysisValue());
-        engine.analysis(fenCode, moveList.subList(0, p), this.board.getBoard(), redGo);
+        engine.setAnalysisModel(prop.getAnalysisModel(), prop.getAnalysisValue());
+        engine.analysis(fenCode, moveList.subList(0, p), this.board.getBoard(), redGo, !robotAnalysis.getValue());
     }
 
     @FXML
