@@ -55,6 +55,7 @@ import java.io.IOException;
 import java.net.URI;
 import java.security.SecureRandom;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -201,6 +202,7 @@ public class Controller implements EngineCallBack, LinkerCallBack {
     private List<String> tacticList;
     private final Random random = new SecureRandom();
     private volatile List<FirstStepData> firstStepSnapshot = List.of();
+    private volatile boolean multiPvRefinePending;
     private final EventHandler<KeyEvent> keyboardEventHandler = this::onGlobalKeyPressed;
 
     private static class FirstStepData {
@@ -361,6 +363,7 @@ public class Controller implements EngineCallBack, LinkerCallBack {
 
     private void engineStop() {
         if (engine != null) {
+            multiPvRefinePending = false;
             engine.stop();
         }
     }
@@ -472,6 +475,7 @@ public class Controller implements EngineCallBack, LinkerCallBack {
 
         // 重置变招列表
         tacticList = null;
+        multiPvRefinePending = false;
 
         engine.setThreadNum(prop.getThreadNum());
         engine.setHashSize(prop.getHashSize());
@@ -1425,19 +1429,19 @@ public class Controller implements EngineCallBack, LinkerCallBack {
         this.isThinking = false;
     }
 
-    private String chooseMoveByMultiPvWindow(String engineBestMove) {
+    private List<FirstStepData> collectMultiPvWindowCandidates(String engineBestMove) {
         if (engine == null || engine.getMultiPV() <= 1) {
-            return engineBestMove;
+            return List.of();
         }
 
         Integer scoreWindow = prop.getMultiPvScoreWindow();
         if (scoreWindow == null || scoreWindow <= 0) {
-            return engineBestMove;
+            return List.of();
         }
 
         List<FirstStepData> snapshot = this.firstStepSnapshot;
         if (snapshot == null || snapshot.isEmpty()) {
-            return engineBestMove;
+            return List.of();
         }
 
         int maxDepth = -1;
@@ -1447,7 +1451,7 @@ public class Controller implements EngineCallBack, LinkerCallBack {
             }
         }
         if (maxDepth < 0) {
-            return engineBestMove;
+            return List.of();
         }
 
         List<FirstStepData> sameDepthData = new ArrayList<>();
@@ -1466,7 +1470,7 @@ public class Controller implements EngineCallBack, LinkerCallBack {
             }
         }
         if (sameDepthData.isEmpty()) {
-            return engineBestMove;
+            return List.of();
         }
 
         FirstStepData baseline = pv1Data != null ? pv1Data : (bestMoveData != null ? bestMoveData : sameDepthData.get(0));
@@ -1478,6 +1482,32 @@ public class Controller implements EngineCallBack, LinkerCallBack {
                 candidates.add(data);
             }
         }
+        return candidates;
+    }
+
+    private List<String> chooseRefineMovesByMultiPvWindow(String engineBestMove) {
+        Integer moveCount = prop.getMultiPvMoveCount();
+        if (moveCount == null || moveCount <= 0) {
+            return List.of();
+        }
+
+        List<FirstStepData> candidates = collectMultiPvWindowCandidates(engineBestMove);
+        if (candidates.isEmpty()) {
+            return List.of();
+        }
+
+        List<FirstStepData> shuffled = new ArrayList<>(candidates);
+        Collections.shuffle(shuffled, random);
+        int limit = Math.min(moveCount, shuffled.size());
+        List<String> moves = new ArrayList<>(limit);
+        for (int i = 0; i < limit; i++) {
+            moves.add(shuffled.get(i).getMove());
+        }
+        return moves;
+    }
+
+    private String chooseMoveByMultiPvWindow(String engineBestMove) {
+        List<FirstStepData> candidates = collectMultiPvWindowCandidates(engineBestMove);
         if (candidates.isEmpty()) {
             return engineBestMove;
         }
@@ -1488,10 +1518,28 @@ public class Controller implements EngineCallBack, LinkerCallBack {
     @Override
     public void bestMove(String first, String second) {
         if (redGo && robotRed.getValue() || !redGo && robotBlack.getValue()) {
-            String selectedMove = chooseMoveByMultiPvWindow(first);
+            String selectedMove = first;
+            String selectedTip = second;
+            if (multiPvRefinePending) {
+                multiPvRefinePending = false;
+            } else {
+                List<String> refineMoves = chooseRefineMovesByMultiPvWindow(first);
+                if (!refineMoves.isEmpty()) {
+                    multiPvRefinePending = true;
+                    engine.analysis(fenCode, moveList.subList(0, p), refineMoves);
+                    return;
+                }
+
+                selectedMove = chooseMoveByMultiPvWindow(first);
+                if (!first.equals(selectedMove)) {
+                    selectedTip = null;
+                }
+            }
+
             ChessBoard.Step s = board.stepForBoard(selectedMove);
             if (s == null) {
                 selectedMove = first;
+                selectedTip = second;
                 s = board.stepForBoard(selectedMove);
             }
             if (s == null) {
@@ -1500,7 +1548,7 @@ public class Controller implements EngineCallBack, LinkerCallBack {
 
             ChessBoard.Step finalStep = s;
             String finalMove = selectedMove;
-            String finalTip = first.equals(finalMove) ? second : null;
+            String finalTip = selectedTip;
 
             Platform.runLater(() -> {
                 board.move(finalStep.getStart().getX(), finalStep.getStart().getY(), finalStep.getEnd().getX(), finalStep.getEnd().getY());

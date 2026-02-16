@@ -29,6 +29,9 @@ public class TimeSettingController {
     private TextField multiPvScoreWindowText;
 
     @FXML
+    private TextField multiPvMoveCountText;
+
+    @FXML
     private TextField engineDelayStart;
 
     @FXML
@@ -73,6 +76,13 @@ public class TimeSettingController {
             return;
         }
         prop.setMultiPvScoreWindow(Integer.parseInt(txt));
+
+        txt = multiPvMoveCountText.getText();
+        if (!StringUtils.isNonNegativeInt(txt)) {
+            DialogUtils.showErrorDialog("失败", "招法数量错误");
+            return;
+        }
+        prop.setMultiPvMoveCount(Integer.parseInt(txt));
 
         txt = engineDelayStart.getText();
         if (!StringUtils.isNonNegativeInt(txt)) {
@@ -120,6 +130,7 @@ public class TimeSettingController {
         }
 
         multiPvScoreWindowText.setText(String.valueOf(prop.getMultiPvScoreWindow()));
+        multiPvMoveCountText.setText(String.valueOf(prop.getMultiPvMoveCount()));
 
         engineDelayStart.setText(String.valueOf(prop.getEngineDelayStart()));
         engineDelayEnd.setText(String.valueOf(prop.getEngineDelayEnd()));
