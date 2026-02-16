@@ -63,7 +63,7 @@ public abstract class BaseBoardRender implements BoardRender {
                 ChessBoard.Step first = tip.getFirst();
                 if (first != null) {
                     int firstPv = tip.getFirstPv() == null ? i + 1 : tip.getFirstPv();
-                    drawStepTips(pos, piece, first.getStart().x, first.getStart().y, first.getEnd().x, first.getEnd().y, showTipOrder, firstPv, isReverse, Color.PURPLE);
+                    drawStepTips(pos, piece, first.getStart().x, first.getStart().y, first.getEnd().x, first.getEnd().y, showTipOrder, firstPv, isReverse, Color.RED);
                 }
                 ChessBoard.Step second = tip.getSecond();
                 if (second != null) {
