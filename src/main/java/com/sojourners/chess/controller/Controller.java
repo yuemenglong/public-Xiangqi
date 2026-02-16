@@ -463,6 +463,7 @@ public class Controller implements EngineCallBack, LinkerCallBack {
         lineChartSeries.getData().add(new XYChart.Data<>(p, score > 1000 ? 1000 : (score < -1000 ? -1000 : score)));
         // 切换行棋方
         redGo = !redGo;
+        clearThinkOutput();
         // 触发引擎走棋
         if (redGo && robotRed.getValue() || !redGo && robotBlack.getValue() || robotAnalysis.getValue()) {
             engineGo();
@@ -497,6 +498,7 @@ public class Controller implements EngineCallBack, LinkerCallBack {
         if (p % 2 != 0) {
             redGo = !redGo;
         }
+        clearThinkOutput();
         // 引擎走棋
         if (robotRed.getValue() && robotBlack.getValue()) {
             // 如果引擎执红同时执黑，取消状态（否则会有问题）
@@ -1004,15 +1006,19 @@ public class Controller implements EngineCallBack, LinkerCallBack {
         // 重置趋势图
         initLineChart();
         // 重置引擎思考输出
-        listView.getItems().clear();
+        clearThinkOutput();
         // 清空思考状态信息
-        this.infoShowLabel.setText("");
 
         System.gc();
     }
     private void resetTable() {
         recordTable.getItems().clear();
         recordTable.getItems().add(new ManualRecord(p, "初始局面", 0));
+    }
+
+    private void clearThinkOutput() {
+        listView.getItems().clear();
+        this.infoShowLabel.setText("");
     }
 
     private void initEngineView() {
