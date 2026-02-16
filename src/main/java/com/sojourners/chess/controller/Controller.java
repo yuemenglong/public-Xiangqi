@@ -41,7 +41,6 @@ import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.input.TransferMode;
 import javafx.scene.layout.BorderPane;
-import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.stage.FileChooser;
@@ -811,14 +810,11 @@ public class Controller implements EngineCallBack, LinkerCallBack {
 
                         VBox box = new VBox();
 
+                        Label title = new Label();
                         int index = getIndex() + 1;
-                        HBox titleBox = new HBox();
-                        Label indexLabel = new Label(index + ". ");
-                        indexLabel.setTextFill(redGo ? Color.RED : Color.GREEN);
-                        Label title = new Label("D" + item.getDepth() + " | " + item.getWord() + " | " + formatEngineScore(item.getScore()));
+                        title.setText(index + ". D" + item.getDepth() + " | " + item.getWord() + " | " + formatEngineScore(item.getScore()));
                         title.setTextFill(item.getScore() >= 0 ? Color.BLUE : Color.RED);
-                        titleBox.getChildren().addAll(indexLabel, title);
-                        box.getChildren().add(titleBox);
+                        box.getChildren().add(title);
 
                         Label body = new Label();
                         body.setText(item.getBody());
