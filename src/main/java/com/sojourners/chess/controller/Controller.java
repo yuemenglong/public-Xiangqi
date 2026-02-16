@@ -798,7 +798,8 @@ public class Controller implements EngineCallBack, LinkerCallBack {
                         VBox box = new VBox();
 
                         Label title = new Label();
-                        title.setText("D" + item.getDepth() + " | " + item.getWord());
+                        int index = getIndex() + 1;
+                        title.setText(index + ". D" + item.getDepth() + " | " + item.getWord());
                         title.setTextFill(Color.BLUE);
                         box.getChildren().add(title);
 
