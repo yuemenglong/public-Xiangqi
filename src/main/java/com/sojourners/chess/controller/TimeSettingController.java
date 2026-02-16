@@ -11,7 +11,6 @@ import javafx.scene.control.RadioButton;
 import javafx.scene.control.TextField;
 import javafx.scene.control.ToggleGroup;
 
-
 public class TimeSettingController {
 
     @FXML
@@ -27,6 +26,9 @@ public class TimeSettingController {
     private TextField depthText;
 
     @FXML
+    private TextField multiPvScoreWindowText;
+
+    @FXML
     private TextField engineDelayStart;
 
     @FXML
@@ -37,7 +39,6 @@ public class TimeSettingController {
 
     @FXML
     private TextField bookDelayEnd;
-
 
     private Properties prop;
 
@@ -66,12 +67,20 @@ public class TimeSettingController {
             prop.setAnalysisValue(Long.parseLong(txt));
         }
 
-        String txt = engineDelayStart.getText();
+        String txt = multiPvScoreWindowText.getText();
+        if (!StringUtils.isNonNegativeInt(txt)) {
+            DialogUtils.showErrorDialog("失败", "分数窗口错误");
+            return;
+        }
+        prop.setMultiPvScoreWindow(Integer.parseInt(txt));
+
+        txt = engineDelayStart.getText();
         if (!StringUtils.isNonNegativeInt(txt)) {
             DialogUtils.showErrorDialog("失败", "输入引擎出招延迟错误");
             return;
         }
         prop.setEngineDelayStart(Integer.parseInt(txt));
+
         txt = engineDelayEnd.getText();
         if (!StringUtils.isNonNegativeInt(txt)) {
             DialogUtils.showErrorDialog("失败", "输入引擎出招延迟错误");
@@ -85,6 +94,7 @@ public class TimeSettingController {
             return;
         }
         prop.setBookDelayStart(Integer.parseInt(txt));
+
         txt = bookDelayEnd.getText();
         if (!StringUtils.isNonNegativeInt(txt)) {
             DialogUtils.showErrorDialog("失败", "输入库招出招延迟错误");
@@ -95,9 +105,7 @@ public class TimeSettingController {
         App.closeTimeSetting();
     }
 
-
     public void initialize() {
-
         ToggleGroup group = new ToggleGroup();
         fixTimeButton.setToggleGroup(group);
         fixDepthButton.setToggleGroup(group);
@@ -111,12 +119,12 @@ public class TimeSettingController {
             depthText.setText(String.valueOf(prop.getAnalysisValue()));
         }
 
+        multiPvScoreWindowText.setText(String.valueOf(prop.getMultiPvScoreWindow()));
+
         engineDelayStart.setText(String.valueOf(prop.getEngineDelayStart()));
         engineDelayEnd.setText(String.valueOf(prop.getEngineDelayEnd()));
 
         bookDelayStart.setText(String.valueOf(prop.getBookDelayStart()));
         bookDelayEnd.setText(String.valueOf(prop.getBookDelayEnd()));
-
     }
-
 }
