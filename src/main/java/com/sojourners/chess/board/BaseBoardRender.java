@@ -57,15 +57,18 @@ public abstract class BaseBoardRender implements BoardRender {
         drawPieces(pos, piece, board, isReverse, boardSize);
         // 绘制棋步提示
         if (stepTip && moveTips != null) {
+            boolean showTipOrder = showMultiPV || !moveTips.isEmpty();
             for (int i = 0; i < moveTips.size(); i++) {
                 ChessBoard.MoveTip tip = moveTips.get(i);
                 ChessBoard.Step first = tip.getFirst();
                 if (first != null) {
-                    drawStepTips(pos, piece, first.getStart().x, first.getStart().y, first.getEnd().x, first.getEnd().y, showMultiPV, i + 1, isReverse, Color.PURPLE);
+                    int firstPv = tip.getFirstPv() == null ? i + 1 : tip.getFirstPv();
+                    drawStepTips(pos, piece, first.getStart().x, first.getStart().y, first.getEnd().x, first.getEnd().y, showTipOrder, firstPv, isReverse, Color.PURPLE);
                 }
                 ChessBoard.Step second = tip.getSecond();
                 if (second != null) {
-                    drawStepTips(pos, piece, second.getStart().x, second.getStart().y, second.getEnd().x, second.getEnd().y, showMultiPV, i + 1, isReverse, Color.GREEN);
+                    int secondPv = tip.getSecondPv() == null ? i + 1 : tip.getSecondPv();
+                    drawStepTips(pos, piece, second.getStart().x, second.getStart().y, second.getEnd().x, second.getEnd().y, showTipOrder, secondPv, isReverse, Color.GREEN);
                 }
             }
         }

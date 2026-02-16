@@ -130,10 +130,18 @@ public class ChessBoard {
     public class MoveTip {
         Step first;
         Step second;
+        Integer firstPv;
+        Integer secondPv;
 
         public MoveTip(Step first, Step second) {
+            this(first, second, null, null);
+        }
+
+        public MoveTip(Step first, Step second, Integer firstPv, Integer secondPv) {
             this.first = first;
             this.second = second;
+            this.firstPv = firstPv;
+            this.secondPv = secondPv;
         }
 
         public Step getFirst() {
@@ -150,6 +158,22 @@ public class ChessBoard {
 
         public void setSecond(Step second) {
             this.second = second;
+        }
+
+        public Integer getFirstPv() {
+            return firstPv;
+        }
+
+        public void setFirstPv(Integer firstPv) {
+            this.firstPv = firstPv;
+        }
+
+        public Integer getSecondPv() {
+            return secondPv;
+        }
+
+        public void setSecondPv(Integer secondPv) {
+            this.secondPv = secondPv;
         }
     }
 
@@ -373,9 +397,34 @@ public class ChessBoard {
             moveTips.clear();
         }
         if (pv > moveTips.size()) {
-            moveTips.add(new MoveTip(stepForBoard(firstMove), stepForBoard(secondMove)));
+            moveTips.add(new MoveTip(stepForBoard(firstMove), stepForBoard(secondMove), pv, pv));
         } else {
-            moveTips.set(pv - 1, new MoveTip(stepForBoard(firstMove), stepForBoard(secondMove)));
+            moveTips.set(pv - 1, new MoveTip(stepForBoard(firstMove), stepForBoard(secondMove), pv, pv));
+        }
+        if (stepTip) {
+            paint();
+        }
+    }
+
+    public void setTips(List<String> firstMoves, List<String> secondMoves) {
+        moveTips.clear();
+        if (firstMoves != null) {
+            int idx = 1;
+            for (String move : firstMoves) {
+                if (move != null && move.length() == 4) {
+                    moveTips.add(new MoveTip(stepForBoard(move), null, idx, null));
+                    idx++;
+                }
+            }
+        }
+        if (secondMoves != null) {
+            int idx = 1;
+            for (String move : secondMoves) {
+                if (move != null && move.length() == 4) {
+                    moveTips.add(new MoveTip(null, stepForBoard(move), null, idx));
+                    idx++;
+                }
+            }
         }
         if (stepTip) {
             paint();

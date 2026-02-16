@@ -1085,11 +1085,15 @@ public class Controller implements EngineCallBack, LinkerCallBack {
     private void clearThinkOutput() {
         listView.getItems().clear();
         firstStepListView.getItems().clear();
+        if (board != null) {
+            board.setTips(null, null);
+        }
         this.infoShowLabel.setText("");
     }
 
     private void refreshFirstStepList() {
-        Map<String, FirstStepData> deduplicate = new HashMap<>();
+        Map<String, FirstStepData> firstStepDeduplicate = new HashMap<>();
+        Map<String, Integer> secondStepDeduplicate = new HashMap<>();
         for (ThinkData td : listView.getItems()) {
             if (td == null || td.getDetail() == null || td.getDetail().isEmpty()) {
                 continue;
@@ -1100,31 +1104,56 @@ public class Controller implements EngineCallBack, LinkerCallBack {
             }
 
             int depth = td.getDepth() == null ? -1 : td.getDepth();
-            FirstStepData old = deduplicate.get(firstMove);
-            if (old != null && old.getDepth() >= depth) {
-                continue;
+            FirstStepData old = firstStepDeduplicate.get(firstMove);
+            if (old == null || old.getDepth() < depth) {
+                String word = board.translate(firstMove, false);
+                if (StringUtils.isNotEmpty(word)) {
+                    word = word.trim();
+                }
+                if (StringUtils.isEmpty(word)) {
+                    word = firstMove;
+                }
+                firstStepDeduplicate.put(firstMove, new FirstStepData(firstMove, word, depth, td.getBody()));
             }
-
-            String word = board.translate(firstMove, false);
-            if (StringUtils.isNotEmpty(word)) {
-                word = word.trim();
+            if (td.getDetail().size() > 1) {
+                String secondMove = td.getDetail().get(1);
+                if (StringUtils.isNotEmpty(secondMove) && secondMove.length() == 4) {
+                    Integer oldDepth = secondStepDeduplicate.get(secondMove);
+                    if (oldDepth == null || depth > oldDepth) {
+                        secondStepDeduplicate.put(secondMove, depth);
+                    }
+                }
             }
-            if (StringUtils.isEmpty(word)) {
-                word = firstMove;
-            }
-
-            deduplicate.put(firstMove, new FirstStepData(firstMove, word, depth, td.getBody()));
         }
 
-        List<FirstStepData> list = new ArrayList<>(deduplicate.values());
-        list.sort((a, b) -> {
+        List<FirstStepData> firstList = new ArrayList<>(firstStepDeduplicate.values());
+        firstList.sort((a, b) -> {
             int byDepth = Integer.compare(b.getDepth(), a.getDepth());
             if (byDepth != 0) {
                 return byDepth;
             }
             return a.getWord().compareTo(b.getWord());
         });
-        firstStepListView.getItems().setAll(list);
+        firstStepListView.getItems().setAll(firstList);
+
+        List<Map.Entry<String, Integer>> secondList = new ArrayList<>(secondStepDeduplicate.entrySet());
+        secondList.sort((a, b) -> {
+            int byDepth = Integer.compare(b.getValue(), a.getValue());
+            if (byDepth != 0) {
+                return byDepth;
+            }
+            return a.getKey().compareTo(b.getKey());
+        });
+
+        List<String> firstMoves = new ArrayList<>();
+        for (FirstStepData data : firstList) {
+            firstMoves.add(data.getMove());
+        }
+        List<String> secondMoves = new ArrayList<>();
+        for (Map.Entry<String, Integer> item : secondList) {
+            secondMoves.add(item.getKey());
+        }
+        board.setTips(firstMoves, secondMoves);
     }
 
     private void initEngineView() {
@@ -1351,7 +1380,6 @@ public class Controller implements EngineCallBack, LinkerCallBack {
                         timeShowLabel.setText(prop.getAnalysisModel() == Engine.AnalysisModel.FIXED_TIME ? "固定时间" + prop.getAnalysisValue() / 1000d + "s" : "固定深度" + prop.getAnalysisValue() + "层");
                     }
 
-                    board.setTip(td.getDetail().get(0), td.getDetail().size() > 1 ? td.getDetail().get(1) : null, td.getPv());
                 });
             }
         }
