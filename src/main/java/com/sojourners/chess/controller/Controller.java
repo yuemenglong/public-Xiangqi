@@ -927,7 +927,10 @@ public class Controller implements EngineCallBack, LinkerCallBack {
 
         // Keep Ctrl+V text paste behavior in input controls.
         if (event.isControlDown()) {
-            if (event.getCode() == KeyCode.V && !(event.getTarget() instanceof TextInputControl)) {
+            if (event.getCode() == KeyCode.Z && !(event.getTarget() instanceof TextInputControl)) {
+                backButtonClick(null);
+                event.consume();
+            } else if (event.getCode() == KeyCode.V && !(event.getTarget() instanceof TextInputControl)) {
                 if (pasteImageFromClipboard()) {
                     analysisButtonClick(null);
                 }
