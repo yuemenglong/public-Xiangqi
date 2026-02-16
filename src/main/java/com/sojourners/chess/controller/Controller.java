@@ -203,12 +203,14 @@ public class Controller implements EngineCallBack, LinkerCallBack {
         private final String move;
         private final String word;
         private final int depth;
+        private final int score;
         private final String body;
 
-        private FirstStepData(String move, String word, int depth, String body) {
+        private FirstStepData(String move, String word, int depth, int score, String body) {
             this.move = move;
             this.word = word;
             this.depth = depth;
+            this.score = score;
             this.body = body;
         }
 
@@ -224,9 +226,17 @@ public class Controller implements EngineCallBack, LinkerCallBack {
             return depth;
         }
 
+        public int getScore() {
+            return score;
+        }
+
         public String getBody() {
             return body;
         }
+    }
+
+    private static String formatEngineScore(int score) {
+        return score > 0 ? "+" + score : String.valueOf(score);
     }
 
     @FXML
@@ -802,8 +812,8 @@ public class Controller implements EngineCallBack, LinkerCallBack {
 
                         Label title = new Label();
                         int index = getIndex() + 1;
-                        title.setText(index + ". D" + item.getDepth() + " | " + item.getWord());
-                        title.setTextFill(Color.BLUE);
+                        title.setText(index + ". D" + item.getDepth() + " | " + item.getWord() + " | " + formatEngineScore(item.getScore()));
+                        title.setTextFill(item.getScore() >= 0 ? Color.BLUE : Color.RED);
                         box.getChildren().add(title);
 
                         Label body = new Label();
@@ -1147,6 +1157,7 @@ public class Controller implements EngineCallBack, LinkerCallBack {
             }
 
             int depth = td.getDepth() == null ? -1 : td.getDepth();
+            int score = td.getScore() == null ? 0 : td.getScore();
             FirstStepData old = firstStepDeduplicate.get(firstMove);
             if (old == null || old.getDepth() < depth) {
                 String word = board.translate(firstMove, false);
@@ -1156,7 +1167,7 @@ public class Controller implements EngineCallBack, LinkerCallBack {
                 if (StringUtils.isEmpty(word)) {
                     word = firstMove;
                 }
-                firstStepDeduplicate.put(firstMove, new FirstStepData(firstMove, word, depth, td.getBody()));
+                firstStepDeduplicate.put(firstMove, new FirstStepData(firstMove, word, depth, score, td.getBody()));
             }
             if (td.getDetail().size() > 1) {
                 String secondMove = td.getDetail().get(1);
