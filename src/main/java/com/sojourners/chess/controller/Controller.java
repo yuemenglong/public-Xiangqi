@@ -53,13 +53,11 @@ import java.awt.image.RenderedImage;
 import java.io.File;
 import java.io.IOException;
 import java.net.URI;
-import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
 
 public class Controller implements EngineCallBack, LinkerCallBack {
 
@@ -199,8 +197,6 @@ public class Controller implements EngineCallBack, LinkerCallBack {
      * 变招列表
      */
     private List<String> tacticList;
-    private final Random random = new SecureRandom();
-    private volatile List<FirstStepData> firstStepSnapshot = List.of();
     private final EventHandler<KeyEvent> keyboardEventHandler = this::onGlobalKeyPressed;
 
     private static class FirstStepData {
@@ -208,15 +204,13 @@ public class Controller implements EngineCallBack, LinkerCallBack {
         private final String word;
         private final int depth;
         private final int score;
-        private final int pv;
         private final String body;
 
-        private FirstStepData(String move, String word, int depth, int score, int pv, String body) {
+        private FirstStepData(String move, String word, int depth, int score, String body) {
             this.move = move;
             this.word = word;
             this.depth = depth;
             this.score = score;
-            this.pv = pv;
             this.body = body;
         }
 
@@ -234,10 +228,6 @@ public class Controller implements EngineCallBack, LinkerCallBack {
 
         public int getScore() {
             return score;
-        }
-
-        public int getPv() {
-            return pv;
         }
 
         public String getBody() {
@@ -1056,20 +1046,10 @@ public class Controller implements EngineCallBack, LinkerCallBack {
         initBoardContextMenu();
         // 状态栏
         this.infoShowLabel.prefWidthProperty().bind(statusToolBar.widthProperty().subtract(120));
-        this.timeShowLabel.setText(buildAnalysisTimeText());
+        this.timeShowLabel.setText(prop.getAnalysisModel() == Engine.AnalysisModel.FIXED_TIME ? "固定时间" + prop.getAnalysisValue() / 1000d + "s" : "固定深度" + prop.getAnalysisValue() + "层");
         this.statusToolBar.setVisible(prop.isLinkShowInfo());
 
         newChessBoard(null);
-    }
-
-    private String buildAnalysisTimeText() {
-        String text = prop.getAnalysisModel() == Engine.AnalysisModel.FIXED_TIME
-                ? "固定时间" + prop.getAnalysisValue() / 1000d + "s"
-                : "固定深度" + prop.getAnalysisValue() + "层";
-        if (engine != null && engine.getMultiPV() > 1 && prop.getMultiPvScoreWindow() != null && prop.getMultiPvScoreWindow() > 0) {
-            text += " | 窗口±" + prop.getMultiPvScoreWindow();
-        }
-        return text;
     }
 
     private void initBoardContextMenu() {
@@ -1181,7 +1161,6 @@ public class Controller implements EngineCallBack, LinkerCallBack {
     private void clearThinkOutput() {
         listView.getItems().clear();
         firstStepListView.getItems().clear();
-        firstStepSnapshot = List.of();
         if (board != null) {
             board.setTips(null, null);
         }
@@ -1202,9 +1181,8 @@ public class Controller implements EngineCallBack, LinkerCallBack {
 
             int depth = td.getDepth() == null ? -1 : td.getDepth();
             int score = td.getScore() == null ? 0 : td.getScore();
-            int pv = td.getPv() == null ? Integer.MAX_VALUE : td.getPv();
             FirstStepData old = firstStepDeduplicate.get(firstMove);
-            if (old == null || old.getDepth() < depth || (old.getDepth() == depth && old.getPv() > pv)) {
+            if (old == null || old.getDepth() < depth) {
                 String word = board.translate(firstMove, false);
                 if (StringUtils.isNotEmpty(word)) {
                     word = word.trim();
@@ -1212,7 +1190,7 @@ public class Controller implements EngineCallBack, LinkerCallBack {
                 if (StringUtils.isEmpty(word)) {
                     word = firstMove;
                 }
-                firstStepDeduplicate.put(firstMove, new FirstStepData(firstMove, word, depth, score, pv, td.getBody()));
+                firstStepDeduplicate.put(firstMove, new FirstStepData(firstMove, word, depth, score, td.getBody()));
             }
             if (td.getDetail().size() > 1) {
                 String secondMove = td.getDetail().get(1);
@@ -1231,14 +1209,9 @@ public class Controller implements EngineCallBack, LinkerCallBack {
             if (byDepth != 0) {
                 return byDepth;
             }
-            int byPv = Integer.compare(a.getPv(), b.getPv());
-            if (byPv != 0) {
-                return byPv;
-            }
             return a.getWord().compareTo(b.getWord());
         });
         firstStepListView.getItems().setAll(firstList);
-        firstStepSnapshot = new ArrayList<>(firstList);
 
         List<Map.Entry<String, Integer>> secondList = new ArrayList<>(secondStepDeduplicate.entrySet());
         secondList.sort((a, b) -> {
@@ -1448,92 +1421,20 @@ public class Controller implements EngineCallBack, LinkerCallBack {
         this.isThinking = false;
     }
 
-    private String chooseMoveByMultiPvWindow(String engineBestMove) {
-        if (engine == null || engine.getMultiPV() <= 1) {
-            return engineBestMove;
-        }
-
-        Integer scoreWindow = prop.getMultiPvScoreWindow();
-        if (scoreWindow == null || scoreWindow <= 0) {
-            return engineBestMove;
-        }
-
-        List<FirstStepData> snapshot = this.firstStepSnapshot;
-        if (snapshot == null || snapshot.isEmpty()) {
-            return engineBestMove;
-        }
-
-        int maxDepth = -1;
-        for (FirstStepData data : snapshot) {
-            if (data.getDepth() > maxDepth) {
-                maxDepth = data.getDepth();
-            }
-        }
-        if (maxDepth < 0) {
-            return engineBestMove;
-        }
-
-        List<FirstStepData> sameDepthData = new ArrayList<>();
-        FirstStepData pv1Data = null;
-        FirstStepData bestMoveData = null;
-        for (FirstStepData data : snapshot) {
-            if (data.getDepth() != maxDepth) {
-                continue;
-            }
-            sameDepthData.add(data);
-            if (data.getPv() == 1) {
-                pv1Data = data;
-            }
-            if (engineBestMove.equals(data.getMove())) {
-                bestMoveData = data;
-            }
-        }
-        if (sameDepthData.isEmpty()) {
-            return engineBestMove;
-        }
-
-        FirstStepData baseline = pv1Data != null ? pv1Data : (bestMoveData != null ? bestMoveData : sameDepthData.get(0));
-        int baselineScore = baseline.getScore();
-
-        List<FirstStepData> candidates = new ArrayList<>();
-        for (FirstStepData data : sameDepthData) {
-            if (Math.abs(data.getScore() - baselineScore) <= scoreWindow) {
-                candidates.add(data);
-            }
-        }
-        if (candidates.isEmpty()) {
-            return engineBestMove;
-        }
-
-        return candidates.get(random.nextInt(candidates.size())).getMove();
-    }
-
     @Override
     public void bestMove(String first, String second) {
         if (redGo && robotRed.getValue() || !redGo && robotBlack.getValue()) {
-            String selectedMove = chooseMoveByMultiPvWindow(first);
-            ChessBoard.Step s = board.stepForBoard(selectedMove);
-            if (s == null) {
-                selectedMove = first;
-                s = board.stepForBoard(selectedMove);
-            }
-            if (s == null) {
-                return;
-            }
-
-            ChessBoard.Step finalStep = s;
-            String finalMove = selectedMove;
-            String finalTip = first.equals(finalMove) ? second : null;
+            ChessBoard.Step s = board.stepForBoard(first);
 
             Platform.runLater(() -> {
-                board.move(finalStep.getStart().getX(), finalStep.getStart().getY(), finalStep.getEnd().getX(), finalStep.getEnd().getY());
-                board.setTip(finalTip, null, 1);
+                board.move(s.getStart().getX(), s.getStart().getY(), s.getEnd().getX(), s.getEnd().getY());
+                board.setTip(second, null, 1);
 
-                goCallBack(finalMove);
+                goCallBack(first);
             });
 
             if (linkMode.getValue()) {
-                trickAutoClick(finalStep);
+                trickAutoClick(s);
             }
         }
     }
@@ -1553,7 +1454,7 @@ public class Controller implements EngineCallBack, LinkerCallBack {
                     if (prop.isLinkShowInfo()) {
                         infoShowLabel.setText(td.getTitle() + " | " + td.getBody());
                         infoShowLabel.setTextFill(td.getScore() >= 0 ? Color.BLUE : Color.RED);
-                        timeShowLabel.setText(buildAnalysisTimeText());
+                        timeShowLabel.setText(prop.getAnalysisModel() == Engine.AnalysisModel.FIXED_TIME ? "固定时间" + prop.getAnalysisValue() / 1000d + "s" : "固定深度" + prop.getAnalysisValue() + "层");
                     }
 
                 });
