@@ -41,7 +41,6 @@ public class Properties implements Serializable {
     private long analysisValue;
 
     private Integer multiPvScoreWindow = 30;
-    private Integer multiPvMoveCount = 3;
 
     private double stageWidth;
 
@@ -149,9 +148,6 @@ public class Properties implements Serializable {
             }
             if (prop.multiPvScoreWindow == null) {
                 prop.multiPvScoreWindow = 30;
-            }
-            if (prop.multiPvMoveCount == null) {
-                prop.multiPvMoveCount = 3;
             }
         }
         return prop;
@@ -398,14 +394,6 @@ public class Properties implements Serializable {
 
     public void setMultiPvScoreWindow(Integer multiPvScoreWindow) {
         this.multiPvScoreWindow = multiPvScoreWindow;
-    }
-
-    public Integer getMultiPvMoveCount() {
-        return multiPvMoveCount;
-    }
-
-    public void setMultiPvMoveCount(Integer multiPvMoveCount) {
-        this.multiPvMoveCount = multiPvMoveCount;
     }
 
     public String getEngineName() {
