@@ -53,7 +53,9 @@ import java.io.IOException;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class Controller implements EngineCallBack, LinkerCallBack {
 
@@ -75,6 +77,8 @@ public class Controller implements EngineCallBack, LinkerCallBack {
 
     @FXML
     private ListView<ThinkData> listView;
+    @FXML
+    private ListView<FirstStepData> firstStepListView;
 
     @FXML
     private ComboBox<String> engineComboBox;
@@ -191,6 +195,36 @@ public class Controller implements EngineCallBack, LinkerCallBack {
      * 变招列表
      */
     private List<String> tacticList;
+
+    private static class FirstStepData {
+        private final String move;
+        private final String word;
+        private final int depth;
+        private final String body;
+
+        private FirstStepData(String move, String word, int depth, String body) {
+            this.move = move;
+            this.word = word;
+            this.depth = depth;
+            this.body = body;
+        }
+
+        public String getMove() {
+            return move;
+        }
+
+        public String getWord() {
+            return word;
+        }
+
+        public int getDepth() {
+            return depth;
+        }
+
+        public String getBody() {
+            return body;
+        }
+    }
 
     @FXML
     public void newButtonClick(ActionEvent event) {
@@ -749,6 +783,38 @@ public class Controller implements EngineCallBack, LinkerCallBack {
             }
 
         });
+        firstStepListView.setCellFactory(new Callback() {
+            @Override
+            public Object call(Object param) {
+                ListCell<FirstStepData> cell = new ListCell<FirstStepData>() {
+                    @Override
+                    protected void updateItem(FirstStepData item, boolean bln) {
+                        super.updateItem(item, bln);
+                        if (bln || item == null) {
+                            setGraphic(null);
+                            return;
+                        }
+
+                        VBox box = new VBox();
+
+                        Label title = new Label();
+                        title.setText("D" + item.getDepth() + " | " + item.getWord());
+                        title.setTextFill(Color.BLUE);
+                        box.getChildren().add(title);
+
+                        Label body = new Label();
+                        body.setText(item.getBody());
+                        body.setTextFill(Color.BLACK);
+                        body.setWrapText(true);
+                        body.setMaxWidth(firstStepListView.getWidth() / 1.124);
+                        box.getChildren().add(body);
+
+                        setGraphic(box);
+                    }
+                };
+                return cell;
+            }
+        });
         // 按钮
         setButtonTips();
         // 棋盘
@@ -1018,7 +1084,47 @@ public class Controller implements EngineCallBack, LinkerCallBack {
 
     private void clearThinkOutput() {
         listView.getItems().clear();
+        firstStepListView.getItems().clear();
         this.infoShowLabel.setText("");
+    }
+
+    private void refreshFirstStepList() {
+        Map<String, FirstStepData> deduplicate = new HashMap<>();
+        for (ThinkData td : listView.getItems()) {
+            if (td == null || td.getDetail() == null || td.getDetail().isEmpty()) {
+                continue;
+            }
+            String firstMove = td.getDetail().get(0);
+            if (StringUtils.isEmpty(firstMove) || firstMove.length() != 4) {
+                continue;
+            }
+
+            int depth = td.getDepth() == null ? -1 : td.getDepth();
+            FirstStepData old = deduplicate.get(firstMove);
+            if (old != null && old.getDepth() >= depth) {
+                continue;
+            }
+
+            String word = board.translate(firstMove, false);
+            if (StringUtils.isNotEmpty(word)) {
+                word = word.trim();
+            }
+            if (StringUtils.isEmpty(word)) {
+                word = firstMove;
+            }
+
+            deduplicate.put(firstMove, new FirstStepData(firstMove, word, depth, td.getBody()));
+        }
+
+        List<FirstStepData> list = new ArrayList<>(deduplicate.values());
+        list.sort((a, b) -> {
+            int byDepth = Integer.compare(b.getDepth(), a.getDepth());
+            if (byDepth != 0) {
+                return byDepth;
+            }
+            return a.getWord().compareTo(b.getWord());
+        });
+        firstStepListView.getItems().setAll(list);
     }
 
     private void initEngineView() {
@@ -1237,6 +1343,7 @@ public class Controller implements EngineCallBack, LinkerCallBack {
                     if (listView.getItems().size() > 128) {
                         listView.getItems().remove(listView.getItems().size() - 1);
                     }
+                    refreshFirstStepList();
 
                     if (prop.isLinkShowInfo()) {
                         infoShowLabel.setText(td.getTitle() + " | " + td.getBody());
@@ -1257,6 +1364,31 @@ public class Controller implements EngineCallBack, LinkerCallBack {
             String move = bd.getMove();
             bd.setWord(board.translate(move, false));
             this.bookTable.getItems().add(bd);
+        }
+    }
+
+    @FXML
+    public void firstStepListClick(MouseEvent event) {
+        if (event.getButton() != MouseButton.PRIMARY) {
+            return;
+        }
+
+        FirstStepData data = firstStepListView.getSelectionModel().getSelectedItem();
+        if (data == null) {
+            return;
+        }
+
+        if (linkMode.getValue()) {
+            stopGraphLink();
+        }
+
+        ChessBoard.Step s = board.stepForBoard(data.getMove());
+        if (s == null) {
+            return;
+        }
+        String move = board.move(s.getStart().getX(), s.getStart().getY(), s.getEnd().getX(), s.getEnd().getY());
+        if (move != null) {
+            goCallBack(move);
         }
     }
 
