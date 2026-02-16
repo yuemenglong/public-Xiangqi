@@ -869,15 +869,17 @@ public class Controller implements EngineCallBack, LinkerCallBack {
         useOpenBook.setValue(prop.getBookSwitch());
     }
 
-    private void importFromBufferImage(BufferedImage img) {
+    private boolean importFromBufferImage(BufferedImage img) {
         char[][] result = graphLinker.findChessBoard(img);
         if (result != null) {
             if (!XiangqiUtils.validateChessBoard(result) && !DialogUtils.showConfirmDialog("提示", "检测到局面不合法，可能会导致引擎退出或者崩溃，是否继续？")) {
-                return;
+                return false;
             }
             String fenCode = ChessBoard.fenCode(result, true);
             newFromOriginFen(fenCode);
+            return true;
         }
+        return false;
     }
 
     private void importFromImgFile(File f) {
@@ -935,7 +937,9 @@ public class Controller implements EngineCallBack, LinkerCallBack {
                 event.consume();
             }
         } else if (keyCode == KeyCode.F2) {
-            pasteImageMenuClick(null);
+            if (pasteImageFromClipboard()) {
+                analysisButtonClick(null);
+            }
             event.consume();
         }
     }
@@ -1090,10 +1094,15 @@ public class Controller implements EngineCallBack, LinkerCallBack {
 
     @FXML
     public void pasteImageMenuClick(ActionEvent event) {
+        pasteImageFromClipboard();
+    }
+
+    private boolean pasteImageFromClipboard() {
         Image img = ClipboardUtils.getImage();
         if (img != null) {
-            importFromBufferImage((BufferedImage) img);
+            return importFromBufferImage((BufferedImage) img);
         }
+        return false;
     }
 
     @FXML
