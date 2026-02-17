@@ -204,13 +204,15 @@ public class Controller implements EngineCallBack, LinkerCallBack {
         private final String move;
         private final String word;
         private final int depth;
+        private final int pv;
         private final int score;
         private final String body;
 
-        private FirstStepData(String move, String word, int depth, int score, String body) {
+        private FirstStepData(String move, String word, int depth, int pv, int score, String body) {
             this.move = move;
             this.word = word;
             this.depth = depth;
+            this.pv = pv;
             this.score = score;
             this.body = body;
         }
@@ -225,6 +227,10 @@ public class Controller implements EngineCallBack, LinkerCallBack {
 
         public int getDepth() {
             return depth;
+        }
+
+        public int getPv() {
+            return pv;
         }
 
         public int getScore() {
@@ -1200,9 +1206,13 @@ public class Controller implements EngineCallBack, LinkerCallBack {
             }
 
             int depth = td.getDepth() == null ? -1 : td.getDepth();
+            int pv = td.getPv() == null ? Integer.MAX_VALUE : td.getPv();
             int score = td.getScore() == null ? 0 : td.getScore();
             FirstStepData old = firstStepDeduplicate.get(firstMove);
-            if (old == null || score > old.getScore() || (score == old.getScore() && depth > old.getDepth())) {
+            if (old == null
+                    || depth > old.getDepth()
+                    || (depth == old.getDepth() && pv < old.getPv())
+                    || (depth == old.getDepth() && pv == old.getPv() && score > old.getScore())) {
                 String word = board.translate(firstMove, false);
                 if (StringUtils.isNotEmpty(word)) {
                     word = word.trim();
@@ -1210,7 +1220,7 @@ public class Controller implements EngineCallBack, LinkerCallBack {
                 if (StringUtils.isEmpty(word)) {
                     word = firstMove;
                 }
-                firstStepDeduplicate.put(firstMove, new FirstStepData(firstMove, word, depth, score, td.getBody()));
+                firstStepDeduplicate.put(firstMove, new FirstStepData(firstMove, word, depth, pv, score, td.getBody()));
             }
             if (td.getDetail().size() > 1) {
                 String secondMove = td.getDetail().get(1);
@@ -1225,13 +1235,17 @@ public class Controller implements EngineCallBack, LinkerCallBack {
 
         List<FirstStepData> firstList = new ArrayList<>(firstStepDeduplicate.values());
         firstList.sort((a, b) -> {
-            int byScore = Integer.compare(b.getScore(), a.getScore());
-            if (byScore != 0) {
-                return byScore;
-            }
             int byDepth = Integer.compare(b.getDepth(), a.getDepth());
             if (byDepth != 0) {
                 return byDepth;
+            }
+            int byPv = Integer.compare(a.getPv(), b.getPv());
+            if (byPv != 0) {
+                return byPv;
+            }
+            int byScore = Integer.compare(b.getScore(), a.getScore());
+            if (byScore != 0) {
+                return byScore;
             }
             return a.getWord().compareTo(b.getWord());
         });
