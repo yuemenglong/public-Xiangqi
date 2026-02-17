@@ -1187,6 +1187,9 @@ public class Controller implements EngineCallBack, LinkerCallBack {
             if (StringUtils.isEmpty(firstMove) || firstMove.length() != 4) {
                 continue;
             }
+            if (!isCurrentSideFirstMove(firstMove)) {
+                continue;
+            }
 
             int depth = td.getDepth() == null ? -1 : td.getDepth();
             int score = td.getScore() == null ? 0 : td.getScore();
@@ -1259,6 +1262,32 @@ public class Controller implements EngineCallBack, LinkerCallBack {
                 this.infoShowLabel.setText(message);
                 this.infoShowLabel.setTextFill(Color.web("#1f6feb"));
             }
+        }
+    }
+
+    private boolean isCurrentSideFirstMove(String move) {
+        if (board == null || StringUtils.isEmpty(move) || move.length() != 4) {
+            return false;
+        }
+        try {
+            int fromX = move.charAt(0) - 'a';
+            int fromY = 9 - Integer.parseInt(String.valueOf(move.charAt(1)));
+            int toX = move.charAt(2) - 'a';
+            int toY = 9 - Integer.parseInt(String.valueOf(move.charAt(3)));
+            if (fromX < 0 || fromX > 8 || toX < 0 || toX > 8
+                    || fromY < 0 || fromY > 9 || toY < 0 || toY > 9) {
+                return false;
+            }
+
+            char[][] boardData = board.getBoard();
+            char piece = boardData[fromY][fromX];
+            if (piece == ' ' || XiangqiUtils.isRed(piece) != redGo) {
+                return false;
+            }
+
+            return XiangqiUtils.canGo(boardData, fromY, fromX, toY, toX);
+        } catch (Exception e) {
+            return false;
         }
     }
 
