@@ -643,7 +643,7 @@ public class Controller implements EngineCallBack, LinkerCallBack {
     public void pasteButtonClick(ActionEvent e) {
         String fenCode = ClipboardUtils.getText();
         if (StringUtils.isNotEmpty(fenCode) && fenCode.split("/").length == 10) {
-            newFromOriginFen(fenCode);
+            newFromOriginFen(fenCode, true);
         }
     }
 
@@ -865,7 +865,7 @@ public class Controller implements EngineCallBack, LinkerCallBack {
                 return false;
             }
             String fenCode = ChessBoard.fenCode(result, true);
-            newFromOriginFen(fenCode);
+            newFromOriginFen(fenCode, true);
             return true;
         }
         return false;
@@ -1109,6 +1109,10 @@ public class Controller implements EngineCallBack, LinkerCallBack {
      * @param fenCode
      */
     private void newFromOriginFen(String fenCode) {
+        newFromOriginFen(fenCode, false);
+    }
+
+    private void newFromOriginFen(String fenCode, boolean moverByBottomColor) {
         if (StringUtils.isNotEmpty(fenCode)) {
             if (linkMode.getValue()) {
                 stopGraphLink();
@@ -1117,6 +1121,10 @@ public class Controller implements EngineCallBack, LinkerCallBack {
             newChessBoard(fenCode);
             if (XiangqiUtils.isReverse(fenCode)) {
                 reverseButtonClick(null);
+            }
+            if (moverByBottomColor) {
+                redGo = !isReverse.getValue();
+                this.fenCode = board.fenCode(redGo);
             }
         }
     }
