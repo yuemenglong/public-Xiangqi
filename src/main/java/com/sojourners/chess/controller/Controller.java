@@ -1186,6 +1186,9 @@ public class Controller implements EngineCallBack, LinkerCallBack {
         // 绘制棋盘
         board = new ChessBoard(this.canvas, prop.getBoardSize(), prop.getBoardStyle(), prop.isStepTip(),
                 engine != null &&engine.getMultiPV() > 1, prop.isStepSound(), prop.isShowNumber(), fenCode);
+        if (prop.getBoardSize() == ChessBoard.BoardSize.AUTOFIT_BOARD) {
+            board.autoFitSize(borderPane.getWidth(), borderPane.getHeight(), splitPane.getDividerPositions()[0], prop.isLinkShowInfo());
+        }
         // 设置局面
         redGo = StringUtils.isEmpty(fenCode) ? true : fenCode.contains("w");
         this.fenCode = board.fenCode(redGo);
