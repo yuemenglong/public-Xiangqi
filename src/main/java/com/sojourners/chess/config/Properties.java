@@ -136,7 +136,7 @@ public class Properties implements Serializable {
                     prop = new Properties(ChessBoard.BoardSize.AUTOFIT_BOARD, true,
                             1, 16, "",
                             Engine.AnalysisModel.FIXED_TIME, 5000, true,
-                            920, 737, 0.64, 0.6,
+                            1051, 768, 0.64, 0.6,
                             500, 2, true, true, false,
                             true, true, false, 2000, 15,
                             MoveRule.BEST_SCORE, true, new ArrayList<>());

@@ -80,10 +80,15 @@ public class App extends Application {
                     controller.onWindowCloseRequest();
                 }
             });
-            stage.setOnShown(new EventHandler<WindowEvent>() {
+            stage.setOnShowing(new EventHandler<WindowEvent>() {
                 @Override
                 public void handle(WindowEvent windowEvent) {
                     controller.initStage();
+                }
+            });
+            stage.setOnShown(new EventHandler<WindowEvent>() {
+                @Override
+                public void handle(WindowEvent windowEvent) {
                     controller.startBranchFromFen(fenCode);
                 }
             });
