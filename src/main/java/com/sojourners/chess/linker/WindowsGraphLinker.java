@@ -10,6 +10,7 @@ import com.sun.jna.platform.win32.*;
 
 import java.awt.*;
 import java.awt.image.BufferedImage;
+import java.awt.image.RasterFormatException;
 
 public class WindowsGraphLinker extends AbstractGraphLinker implements MouseListenCallBack {
 
@@ -169,6 +170,9 @@ public class WindowsGraphLinker extends AbstractGraphLinker implements MouseList
 
             return image;
 
+        } catch (RasterFormatException e) {
+            System.out.println("[INFO] Link capture skipped: target window may be minimized.");
+            return null;
         } catch (Exception e) {
             e.printStackTrace();
             return null;
