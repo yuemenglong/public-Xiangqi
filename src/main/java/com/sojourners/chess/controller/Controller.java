@@ -1280,10 +1280,6 @@ public class Controller implements EngineCallBack, LinkerCallBack {
         firstStepListView.getItems().clear();
         firstStepListView.getItems().setAll(firstList);
         firstStepListView.refresh();
-        int maxFirstDepth = firstList.stream()
-                .mapToInt(FirstStepData::getDepth)
-                .max()
-                .orElse(-1);
 
         List<Map.Entry<String, Integer>> secondList = new ArrayList<>(secondStepDeduplicate.entrySet());
         secondList.sort((a, b) -> {
@@ -1309,9 +1305,8 @@ public class Controller implements EngineCallBack, LinkerCallBack {
                 firstStepListView.getSelectionModel().select(0);
                 firstStepListView.scrollTo(0);
             }
-            String depthInfo = maxFirstDepth >= 0 ? ("D" + maxFirstDepth) : "未知";
-            String message = String.format("首步去重刷新完成：原始%d条，刷新前%d条，刷新后%d条，次步%d条，最深%s",
-                    thinkCount, beforeCount, firstList.size(), secondMoves.size(), depthInfo);
+            String message = String.format("首步去重刷新完成：原始%d条，刷新前%d条，刷新后%d条，次步%d条",
+                    thinkCount, beforeCount, firstList.size(), secondMoves.size());
             System.out.println("[FirstStepDeduplicate] " + message);
             if (this.infoShowLabel != null) {
                 this.infoShowLabel.setText(message);
@@ -1539,12 +1534,7 @@ public class Controller implements EngineCallBack, LinkerCallBack {
         if (manualRefreshingFirstStep) {
             manualRefreshingFirstStep = false;
             Platform.runLater(() -> {
-                int maxFirstDepth = firstStepListView.getItems().stream()
-                        .mapToInt(FirstStepData::getDepth)
-                        .max()
-                        .orElse(-1);
-                String depthInfo = maxFirstDepth >= 0 ? ("D" + maxFirstDepth) : "未知";
-                String msg = String.format("引擎重新计算完成：首步去重%d条，最深%s", firstStepListView.getItems().size(), depthInfo);
+                String msg = String.format("引擎重新计算完成：首步去重%d条", firstStepListView.getItems().size());
                 System.out.println("[FirstStepDeduplicate] " + msg);
                 infoShowLabel.setText(msg);
                 infoShowLabel.setTextFill(Color.web("#1f6feb"));
