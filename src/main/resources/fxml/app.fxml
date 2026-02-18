@@ -221,7 +221,7 @@
                                  <children>
                                     <BorderPane AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
                                        <center>
-                                          <ListView fx:id="firstStepListView" onMouseClicked="#firstStepListClick" stylesheets="@../style/app.css" BorderPane.alignment="CENTER" />
+                                          <ListView fx:id="firstStepListView" stylesheets="@../style/app.css" BorderPane.alignment="CENTER" />
                                        </center>
                                        <top>
                                           <ToolBar minHeight="-Infinity" minWidth="-Infinity" prefHeight="30.0" BorderPane.alignment="CENTER">

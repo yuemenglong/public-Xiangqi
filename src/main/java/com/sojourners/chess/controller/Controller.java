@@ -1569,16 +1569,6 @@ public class Controller implements EngineCallBack, LinkerCallBack {
     }
 
     @FXML
-    public void firstStepListClick(MouseEvent event) {
-        if (event.getButton() != MouseButton.PRIMARY) {
-            return;
-        }
-
-        FirstStepData data = firstStepListView.getSelectionModel().getSelectedItem();
-        playFirstStep(data);
-    }
-
-    @FXML
     public void refreshFirstStepListClick(ActionEvent event) {
         if (engine == null) {
             refreshFirstStepList(true);
