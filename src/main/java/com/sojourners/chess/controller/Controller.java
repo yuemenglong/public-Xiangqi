@@ -1211,8 +1211,7 @@ public class Controller implements EngineCallBack, LinkerCallBack {
             FirstStepData old = firstStepDeduplicate.get(firstMove);
             if (old == null
                     || depth > old.getDepth()
-                    || (depth == old.getDepth() && pv < old.getPv())
-                    || (depth == old.getDepth() && pv == old.getPv() && score > old.getScore())) {
+                    || (depth == old.getDepth() && score > old.getScore())) {
                 String word = board.translate(firstMove, false);
                 if (StringUtils.isNotEmpty(word)) {
                     word = word.trim();
@@ -1238,10 +1237,6 @@ public class Controller implements EngineCallBack, LinkerCallBack {
             int byDepth = Integer.compare(b.getDepth(), a.getDepth());
             if (byDepth != 0) {
                 return byDepth;
-            }
-            int byPv = Integer.compare(a.getPv(), b.getPv());
-            if (byPv != 0) {
-                return byPv;
             }
             int byScore = Integer.compare(b.getScore(), a.getScore());
             if (byScore != 0) {
