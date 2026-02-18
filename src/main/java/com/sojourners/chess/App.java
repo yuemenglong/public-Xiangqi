@@ -44,7 +44,7 @@ public class App extends Application {
             @Override
             public void handle(Event event) {
                 Controller controller = fxmlLoader.getController();
-                controller.exit();
+                controller.onWindowCloseRequest();
             }
         });
         primaryStage.setOnShowing(new EventHandler<WindowEvent>() {
@@ -58,6 +58,40 @@ public class App extends Application {
         mainStage = primaryStage;
 
         primaryStage.show();
+    }
+
+    public static void openBranchWindow(String fenCode) {
+        try {
+            Stage stage = new Stage();
+            FXMLLoader fxmlLoader = new FXMLLoader();
+            fxmlLoader.setLocation(App.class.getResource("/fxml/app.fxml"));
+            Parent root = fxmlLoader.load();
+            Controller controller = fxmlLoader.getController();
+            controller.setBranchWindowMode(true);
+
+            stage.setTitle("TCHESS  V" + VERSION + " - Branch");
+            stage.setScene(new Scene(root));
+            stage.getIcons().add(new Image(App.class.getResourceAsStream("/image/icon.png")));
+            stage.initOwner(mainStage);
+
+            stage.setOnCloseRequest(new EventHandler() {
+                @Override
+                public void handle(Event event) {
+                    controller.onWindowCloseRequest();
+                }
+            });
+            stage.setOnShown(new EventHandler<WindowEvent>() {
+                @Override
+                public void handle(WindowEvent windowEvent) {
+                    controller.initStage();
+                    controller.startBranchFromFen(fenCode);
+                }
+            });
+
+            stage.show();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     public static void topWindow(boolean top) {

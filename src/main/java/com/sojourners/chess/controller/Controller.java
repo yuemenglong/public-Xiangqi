@@ -44,6 +44,7 @@ import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.stage.FileChooser;
+import javafx.stage.Stage;
 import javafx.util.Callback;
 
 import javax.imageio.ImageIO;
@@ -163,6 +164,8 @@ public class Controller implements EngineCallBack, LinkerCallBack {
     private Button linkButton;
     @FXML
     private Button changeTacticButton;
+    @FXML
+    private Button branchButton;
 
     private String fenCode;
     private List<String> moveList;
@@ -199,6 +202,7 @@ public class Controller implements EngineCallBack, LinkerCallBack {
     private List<String> tacticList;
     private volatile boolean manualRefreshingFirstStep;
     private final EventHandler<KeyEvent> keyboardEventHandler = this::onGlobalKeyPressed;
+    private boolean branchWindowMode;
 
     private static class FirstStepData {
         private final String move;
@@ -388,6 +392,14 @@ public class Controller implements EngineCallBack, LinkerCallBack {
             engine.setAnalysisModel(prop.getAnalysisModel(), prop.getAnalysisValue());
             engine.analysis(fenCode, moveList.subList(0, p), tacticList);
         }
+    }
+
+    @FXML
+    public void branchButtonClick(ActionEvent event) {
+        if (board == null) {
+            return;
+        }
+        App.openBranchWindow(board.fenCode(redGo));
     }
 
     @FXML
@@ -935,7 +947,13 @@ public class Controller implements EngineCallBack, LinkerCallBack {
         }
 
         KeyCode keyCode = event.getCode();
-        if (keyCode == KeyCode.UP || keyCode == KeyCode.LEFT || keyCode == KeyCode.PAGE_UP) {
+        if (branchWindowMode && keyCode == KeyCode.ESCAPE) {
+            Stage stage = borderPane != null && borderPane.getScene() != null ? (Stage) borderPane.getScene().getWindow() : null;
+            if (stage != null) {
+                stage.close();
+                event.consume();
+            }
+        } else if (keyCode == KeyCode.UP || keyCode == KeyCode.LEFT || keyCode == KeyCode.PAGE_UP) {
             backButtonClick(null);
             event.consume();
         } else if (keyCode == KeyCode.DOWN || keyCode == KeyCode.RIGHT || keyCode == KeyCode.PAGE_DOWN) {
@@ -1001,7 +1019,21 @@ public class Controller implements EngineCallBack, LinkerCallBack {
 
         // 窗口置顶
         menuOfTopWindow.setSelected(prop.isTopWindow());
-        App.topWindow(prop.isTopWindow());
+        if (!branchWindowMode) {
+            App.topWindow(prop.isTopWindow());
+        }
+    }
+
+    public void setBranchWindowMode(boolean branchWindowMode) {
+        this.branchWindowMode = branchWindowMode;
+    }
+
+    public void startBranchFromFen(String fenCode) {
+        this.branchWindowMode = true;
+        newFromOriginFen(fenCode);
+        if (!robotAnalysis.getValue()) {
+            analysisButtonClick(null);
+        }
     }
 
     private void setButtonTips() {
@@ -1015,6 +1047,7 @@ public class Controller implements EngineCallBack, LinkerCallBack {
         analysisButton.setTooltip(new Tooltip("分析模式"));
         immediateButton.setTooltip(new Tooltip("立即出招"));
         changeTacticButton.setTooltip(new Tooltip("变招"));
+        branchButton.setTooltip(new Tooltip("分支"));
         linkButton.setTooltip(new Tooltip("连线"));
         bookSwitchButton.setTooltip(new Tooltip("启用库招"));
 
@@ -1647,14 +1680,41 @@ public class Controller implements EngineCallBack, LinkerCallBack {
 
     @FXML
     public void exit() {
+        if (branchWindowMode) {
+            Stage stage = borderPane != null && borderPane.getScene() != null ? (Stage) borderPane.getScene().getWindow() : null;
+            if (stage != null) {
+                stage.close();
+            } else {
+                closeWindow(false);
+            }
+            return;
+        }
+        onWindowCloseRequest();
+    }
+
+    public void onWindowCloseRequest() {
+        closeWindow(!branchWindowMode);
+    }
+
+    private void closeWindow(boolean appExit) {
+        if (borderPane != null && borderPane.getScene() != null) {
+            borderPane.getScene().removeEventFilter(KeyEvent.KEY_PRESSED, keyboardEventHandler);
+        }
         if (engine != null) {
             engine.close();
+            engine = null;
+        }
+
+        if (graphLinker != null) {
+            graphLinker.stop();
+        }
+
+        if (!appExit) {
+            return;
         }
 
         OpenBookManager.getInstance().close();
 //        ExecutorsUtils.getInstance().close();
-
-        graphLinker.stop();
 
         prop.setStageWidth(borderPane.getWidth());
         prop.setStageHeight(borderPane.getHeight());

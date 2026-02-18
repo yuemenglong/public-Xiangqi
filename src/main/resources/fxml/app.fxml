@@ -161,6 +161,11 @@
                         <Insets />
                      </opaqueInsets>
                   </Button>
+                  <Button fx:id="branchButton" contentDisplay="GRAPHIC_ONLY" minHeight="-Infinity" minWidth="-Infinity" mnemonicParsing="false" onAction="#branchButtonClick" style="-fx-background-image: url('/image/add.png');" stylesheets="@../style/app.css" text="Button">
+                     <opaqueInsets>
+                        <Insets />
+                     </opaqueInsets>
+                  </Button>
                   <Button fx:id="bookSwitchButton" contentDisplay="GRAPHIC_ONLY" layoutX="254.0" layoutY="8.0" minHeight="-Infinity" minWidth="-Infinity" mnemonicParsing="false" onAction="#bookSwitchButtonClick" style="-fx-background-image: url('/image/cloud.png');" stylesheets="@../style/app.css" text="Button">
                      <opaqueInsets>
                         <Insets />
