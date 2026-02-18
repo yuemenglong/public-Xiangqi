@@ -16,11 +16,11 @@ import java.util.Map;
  */
 public class ChessBoard {
 
-    private static BaseBoardRender boardRender;
+    private BaseBoardRender boardRender;
 
-    private static volatile char[][] board = new char[10][9];
+    private final char[][] board = new char[10][9];
 
-    private static char[][] copyBoard = new char[10][9];
+    private final char[][] copyBoard = new char[10][9];
 
     private BoardSize boardSize;
 
@@ -190,9 +190,7 @@ public class ChessBoard {
     }
 
     public ChessBoard(Canvas canvas, BoardSize bs, BoardStyle style, boolean stepTip, boolean showMultiPV, boolean stepSound, boolean showNumber, String fenCode) {
-        if (this.boardRender == null) {
-            this.boardRender = style == BoardStyle.CUSTOM ? new CustomBoardRender(canvas) : new DefaultBoardRender(canvas);
-        }
+        this.boardRender = style == BoardStyle.CUSTOM ? new CustomBoardRender(canvas) : new DefaultBoardRender(canvas);
 
         this.stepTip = stepTip;
         this.stepSound = stepSound;

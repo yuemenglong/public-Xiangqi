@@ -18,7 +18,7 @@ public abstract class BaseBoardRender implements BoardRender {
 
     GraphicsContext gc;
 
-    private static int autoPieceSize;
+    private int autoPieceSize;
 
     public BaseBoardRender(Canvas canvas) {
         this.canvas = canvas;
