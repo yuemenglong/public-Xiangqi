@@ -201,6 +201,10 @@ public class Controller implements EngineCallBack, LinkerCallBack {
      */
     private List<String> tacticList;
     private volatile boolean manualRefreshingFirstStep;
+    private String focusedFirstStepMove;
+    private final List<String> tipFirstMoves = new ArrayList<>();
+    private final List<String> tipSecondMoves = new ArrayList<>();
+    private final Map<String, List<String>> tipSecondMovesByFirst = new HashMap<>();
     private final EventHandler<KeyEvent> keyboardEventHandler = this::onGlobalKeyPressed;
     private boolean branchWindowMode;
 
@@ -847,9 +851,16 @@ public class Controller implements EngineCallBack, LinkerCallBack {
                         setGraphic(box);
                     }
                 };
+                cell.setOnMouseClicked(event -> {
+                    if (event.getButton() != MouseButton.PRIMARY || event.getClickCount() != 1 || cell.isEmpty()) {
+                        return;
+                    }
+                    handleFirstStepClick(cell.getItem());
+                });
                 return cell;
             }
         });
+        initFirstStepListInteraction();
         // 按钮
         setButtonTips();
         // 棋盘
@@ -1214,6 +1225,10 @@ public class Controller implements EngineCallBack, LinkerCallBack {
     private void clearThinkOutput() {
         listView.getItems().clear();
         firstStepListView.getItems().clear();
+        focusedFirstStepMove = null;
+        tipFirstMoves.clear();
+        tipSecondMoves.clear();
+        tipSecondMovesByFirst.clear();
         if (board != null) {
             board.setTips(null, null);
         }
@@ -1224,11 +1239,48 @@ public class Controller implements EngineCallBack, LinkerCallBack {
         refreshFirstStepList(false);
     }
 
+    private void initFirstStepListInteraction() {
+        firstStepListView.getSelectionModel().setSelectionMode(SelectionMode.SINGLE);
+    }
+
+    private void handleFirstStepClick(FirstStepData data) {
+        if (data == null || StringUtils.isEmpty(data.getMove())) {
+            return;
+        }
+        if (data.getMove().equals(focusedFirstStepMove)) {
+            focusedFirstStepMove = null;
+            firstStepListView.getSelectionModel().clearSelection();
+        } else {
+            focusedFirstStepMove = data.getMove();
+            firstStepListView.getSelectionModel().select(data);
+        }
+        applyFirstStepArrowFilter();
+    }
+
+    private void applyFirstStepArrowFilter() {
+        if (board == null) {
+            return;
+        }
+        if (StringUtils.isNotEmpty(focusedFirstStepMove) && tipFirstMoves.contains(focusedFirstStepMove)) {
+            List<String> firstMoves = new ArrayList<>(1);
+            firstMoves.add(focusedFirstStepMove);
+            List<String> secondMoves = tipSecondMovesByFirst.get(focusedFirstStepMove);
+            board.setTips(firstMoves, secondMoves);
+            return;
+        }
+        if (StringUtils.isNotEmpty(focusedFirstStepMove)) {
+            focusedFirstStepMove = null;
+            firstStepListView.getSelectionModel().clearSelection();
+        }
+        board.setTips(tipFirstMoves, tipSecondMoves);
+    }
+
     private void refreshFirstStepList(boolean manualTrigger) {
         int thinkCount = listView.getItems().size();
         int beforeCount = firstStepListView.getItems().size();
         Map<String, FirstStepData> firstStepDeduplicate = new HashMap<>();
         Map<String, Integer> secondStepDeduplicate = new HashMap<>();
+        Map<String, Map<String, Integer>> secondStepDeduplicateByFirst = new HashMap<>();
         for (ThinkData td : listView.getItems()) {
             if (td == null || td.getDetail() == null || td.getDetail().isEmpty()) {
                 continue;
@@ -1263,6 +1315,11 @@ public class Controller implements EngineCallBack, LinkerCallBack {
                     Integer oldDepth = secondStepDeduplicate.get(secondMove);
                     if (oldDepth == null || depth > oldDepth) {
                         secondStepDeduplicate.put(secondMove, depth);
+                    }
+                    Map<String, Integer> secondMapByFirst = secondStepDeduplicateByFirst.computeIfAbsent(firstMove, key -> new HashMap<>());
+                    Integer oldDepthByFirst = secondMapByFirst.get(secondMove);
+                    if (oldDepthByFirst == null || depth > oldDepthByFirst) {
+                        secondMapByFirst.put(secondMove, depth);
                     }
                 }
             }
@@ -1301,10 +1358,50 @@ public class Controller implements EngineCallBack, LinkerCallBack {
         for (Map.Entry<String, Integer> item : secondList) {
             secondMoves.add(item.getKey());
         }
-        board.setTips(firstMoves, secondMoves);
+        Map<String, List<String>> sortedSecondMovesByFirst = new HashMap<>();
+        for (Map.Entry<String, Map<String, Integer>> entry : secondStepDeduplicateByFirst.entrySet()) {
+            List<Map.Entry<String, Integer>> currentSecondList = new ArrayList<>(entry.getValue().entrySet());
+            currentSecondList.sort((a, b) -> {
+                int byDepth = Integer.compare(b.getValue(), a.getValue());
+                if (byDepth != 0) {
+                    return byDepth;
+                }
+                return a.getKey().compareTo(b.getKey());
+            });
+            List<String> currentSecondMoves = new ArrayList<>();
+            for (Map.Entry<String, Integer> secondEntry : currentSecondList) {
+                currentSecondMoves.add(secondEntry.getKey());
+            }
+            sortedSecondMovesByFirst.put(entry.getKey(), currentSecondMoves);
+        }
+
+        tipFirstMoves.clear();
+        tipFirstMoves.addAll(firstMoves);
+        tipSecondMoves.clear();
+        tipSecondMoves.addAll(secondMoves);
+        tipSecondMovesByFirst.clear();
+        tipSecondMovesByFirst.putAll(sortedSecondMovesByFirst);
+
+        if (StringUtils.isNotEmpty(focusedFirstStepMove)) {
+            int selectedIndex = -1;
+            for (int i = 0; i < firstList.size(); i++) {
+                if (focusedFirstStepMove.equals(firstList.get(i).getMove())) {
+                    selectedIndex = i;
+                    break;
+                }
+            }
+            if (selectedIndex >= 0) {
+                firstStepListView.getSelectionModel().select(selectedIndex);
+                firstStepListView.scrollTo(selectedIndex);
+            } else {
+                focusedFirstStepMove = null;
+                firstStepListView.getSelectionModel().clearSelection();
+            }
+        }
+        applyFirstStepArrowFilter();
 
         if (manualTrigger) {
-            if (!firstList.isEmpty()) {
+            if (!firstList.isEmpty() && StringUtils.isEmpty(focusedFirstStepMove)) {
                 firstStepListView.getSelectionModel().select(0);
                 firstStepListView.scrollTo(0);
             }
