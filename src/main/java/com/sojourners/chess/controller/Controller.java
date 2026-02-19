@@ -1278,6 +1278,7 @@ public class Controller implements EngineCallBack, LinkerCallBack {
     private void refreshFirstStepList(boolean manualTrigger) {
         int thinkCount = listView.getItems().size();
         int beforeCount = firstStepListView.getItems().size();
+        boolean opponentTurnForBottomSide = isOpponentTurnForBottomSide();
         Map<String, FirstStepData> firstStepDeduplicate = new HashMap<>();
         Map<String, Integer> secondStepDeduplicate = new HashMap<>();
         Map<String, Map<String, Integer>> secondStepDeduplicateByFirst = new HashMap<>();
@@ -1299,7 +1300,7 @@ public class Controller implements EngineCallBack, LinkerCallBack {
             FirstStepData old = firstStepDeduplicate.get(firstMove);
             if (old == null
                     || depth > old.getDepth()
-                    || (depth == old.getDepth() && score > old.getScore())) {
+                    || (depth == old.getDepth() && (opponentTurnForBottomSide ? score < old.getScore() : score > old.getScore()))) {
                 String word = board.translate(firstMove, false);
                 if (StringUtils.isNotEmpty(word)) {
                     word = word.trim();
@@ -1331,7 +1332,9 @@ public class Controller implements EngineCallBack, LinkerCallBack {
             if (byDepth != 0) {
                 return byDepth;
             }
-            int byScore = Integer.compare(b.getScore(), a.getScore());
+            int byScore = opponentTurnForBottomSide
+                    ? Integer.compare(a.getScore(), b.getScore())
+                    : Integer.compare(b.getScore(), a.getScore());
             if (byScore != 0) {
                 return byScore;
             }
@@ -1439,6 +1442,11 @@ public class Controller implements EngineCallBack, LinkerCallBack {
         } catch (Exception e) {
             return false;
         }
+    }
+
+    private boolean isOpponentTurnForBottomSide() {
+        boolean bottomIsRed = !isReverse.getValue();
+        return redGo != bottomIsRed;
     }
 
     private void initEngineView() {
